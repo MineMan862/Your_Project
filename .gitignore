@@ -39,3 +39,4 @@ CMakeLists.txt
 build/
 cmake-build-*/
 
+*.pdf

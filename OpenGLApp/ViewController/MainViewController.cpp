@@ -1,8 +1,8 @@
 #include "MainViewController.h"
+#include "GameViewController.h"
 
 void MainViewController::loadModels() {
-    // You can use this function to preload the 3D models for your game, to use in another ViewController
-
+    // Models are loaded by GameViewController when the game starts
 }
 
 int MainViewController::main(GLFWwindow* window)
@@ -39,6 +39,7 @@ int MainViewController::main(GLFWwindow* window)
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST); // Menu is 2D, disable depth test
 
         // Background
         menuBGShader.use();
@@ -60,6 +61,32 @@ int MainViewController::main(GLFWwindow* window)
         }
         else {
             sprite2D.DrawSprite(startButtonTextureSelected, glm::vec2(startButton.x, startButton.y), glm::vec2(startButton.width, startButton.height));
+        }
+
+        // Handle Start button click -> Launch Game
+        if (startButton.clicked) {
+            startButton.clicked = false;
+            menuMusic.stopSound();
+
+            // Launch game loop
+            bool keepPlaying = true;
+            while (keepPlaying && !glfwWindowShouldClose(window)) {
+                GameViewController gameView;
+                GameResult result = gameView.main(window);
+                if (result == RESULT_QUIT) {
+                    keepPlaying = false;
+                }
+                // If RESULT_RESTART, the game already handled it internally
+                // If we get here with QUIT, return to menu
+            }
+
+            // Returned from game, restart menu music if window still open
+            if (!glfwWindowShouldClose(window)) {
+                menuMusic.playSound();
+                // Re-enable 2D rendering state for menu
+                glDisable(GL_DEPTH_TEST);
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
         }
 
         if (loaded == false) {

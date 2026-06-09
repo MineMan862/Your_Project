@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 if (WIN32)
     message(STATUS "Using vcpkg toolchain on Windows")
     #TODO: Change the path to your vcpkg installation
-    set(CMAKE_TOOLCHAIN_FILE "C:/Users/salva/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+    set(CMAKE_TOOLCHAIN_FILE "C:/Users/manue/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 endif ()
 # === Project name ===
 #TODO: Change it to your project Name

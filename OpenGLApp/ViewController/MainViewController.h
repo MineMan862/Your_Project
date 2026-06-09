@@ -10,6 +10,8 @@
 #include "../DataClasses/shader.h"
 #include "../DataClasses/SpriteRenderer.h"
 #include "../DataClasses/Button.h"
+#include "../DataClasses/model.h"
+#include "GameClasses/GameCommon.h"
 
 using namespace std;
 
@@ -59,4 +61,3 @@ protected:
 	bool loaded = false; // Used to check if the models are loaded
 
 };
-

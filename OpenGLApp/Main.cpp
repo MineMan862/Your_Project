@@ -1,4 +1,4 @@
-﻿#include <glad/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -41,8 +41,8 @@ float lastFrame = 0.0f;
 std::map<GLchar, Character> Characters;
 unsigned int VAOText, VBOText;
 
-//TODO: Change this to your game Name, so the new Window will have this name
-string gameName = "YOUR GAME";
+// Game Name
+string gameName = "Bike Lane Runner";
 
 // Sound
 SoundManager menuMusic;
@@ -176,7 +176,7 @@ GLFWwindow* setWindow() {
 
     // configure global opengl state
     // -----------------------------
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_ALPHA);
 
     // draw in wireframe

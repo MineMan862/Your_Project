@@ -172,7 +172,7 @@ elseif(WIN32 OR (UNIX AND NOT APPLE))
     add_custom_command(TARGET ${APP_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/OpenGLApp/resources
-            ${CMAKE_CURRENT_BINARY_DIR}/resources
+            $<TARGET_FILE_DIR:${APP_NAME}>/resources
     )
 endif()
 

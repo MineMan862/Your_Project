@@ -43,14 +43,20 @@ public:
     vector<Vertex>       vertices;
     vector<unsigned int> indices;
     vector<Texture>      textures;
+    glm::vec3            materialDiffuse;
+    glm::vec3            materialSpecular;
+    float                materialShininess;
     unsigned int VAO;
 
     // constructor
-    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
+    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures, glm::vec3 materialDiffuse = glm::vec3(0.6f), glm::vec3 materialSpecular = glm::vec3(0.5f), float materialShininess = 32.0f)
     {
         this->vertices = vertices;
         this->indices = indices;
         this->textures = textures;
+        this->materialDiffuse = materialDiffuse;
+        this->materialSpecular = materialSpecular;
+        this->materialShininess = materialShininess;
 
         // now that we have all the required data, set the vertex buffers and its attribute pointers.
         setupMesh();

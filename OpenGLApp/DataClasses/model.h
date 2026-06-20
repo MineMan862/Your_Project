@@ -226,8 +226,21 @@ private:
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
+        // Extract material colors
+        aiColor3D color(0.f, 0.f, 0.f);
+        glm::vec3 materialDiffuse(0.6f, 0.6f, 0.6f);
+        if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, color))
+            materialDiffuse = glm::vec3(color.r, color.g, color.b);
+
+        glm::vec3 materialSpecular(0.5f, 0.5f, 0.5f);
+        if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, color))
+            materialSpecular = glm::vec3(color.r, color.g, color.b);
+
+        float materialShininess = 32.0f;
+        material->Get(AI_MATKEY_SHININESS, materialShininess);
+
         // return a mesh object created from the extracted mesh data
-        return Mesh(vertices, indices, textures);
+        return Mesh(vertices, indices, textures, materialDiffuse, materialSpecular, materialShininess);
     }
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet.

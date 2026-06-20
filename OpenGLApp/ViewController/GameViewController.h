@@ -56,11 +56,19 @@ private:
     float lastMouseY = 0.0f;
     bool firstMouseMove = true;
 
-    // Rendering
+    // Rendering - procedural geometry
     unsigned int cubeVAO = 0, cubeVBO = 0;
     unsigned int groundVAO = 0, groundVBO = 0;
+
+    // Assimp Models
     Model bikeModel;
     bool bikeModelLoaded = false;
+    Model furgoncinoModel;   // Obstacle TALL
+    bool furgoncinoModelLoaded = false;
+    Model macerieModel;      // Obstacle LOW
+    bool macerieModelLoaded = false;
+    Model stradaModel;       // Road segment
+    bool stradaModelLoaded = false;
 
     // Sound
     SoundManager gameMusic;
@@ -68,12 +76,14 @@ private:
     SoundManager sfxCrash;
 
     void setupGeometry();
+    void loadModels();
     void setupLighting(Shader& shader);
     void renderRoad(Shader& shader);
     void renderBike(Shader& shader);
     void renderObstacles(Shader& shader);
     void renderHUD(GLFWwindow* window);
     void renderCube(Shader& shader, glm::vec3 position, glm::vec3 scale, glm::vec3 color);
+    void renderModel(Shader& shader, Model& mdl, glm::vec3 position, glm::vec3 scale, float rotationY = 0.0f);
     void handleInput(GLFWwindow* window);
     void updateCamera();
     void reset();

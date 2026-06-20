@@ -13,6 +13,7 @@ public:
     float width = 2.0f;
     float height;
     float depth = 1.0f;
+    float rotationY = 90.0f;
 
     // Color
     glm::vec3 color;

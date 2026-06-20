@@ -3,45 +3,40 @@
 #include "VictoryViewController.h"
 #include <sstream>
 #include <iomanip>
+#include <assimp/scene.h>
 
-// Unit cube vertex data: position(3) + normal(3) + texcoord(2) = 8 floats per vertex, 36 vertices
+// Unit cube vertex data: position(3) + normal(3) + texcoord(2)
 static const float cubeVerticesData[] = {
-    // Back face
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-    // Front face
     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
     -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,
     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-    // Left face
     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
     -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
     -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-    // Right face
      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
      0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-    // Bottom face
     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
     -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-    // Top face
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
@@ -52,7 +47,6 @@ static const float cubeVerticesData[] = {
 
 // Ground plane vertices (XZ plane at Y=0)
 static const float groundVerticesData[] = {
-    // pos                  normal           texcoord
     -1.0f, 0.0f,  1.0f,    0.0f, 1.0f, 0.0f,  0.0f, 0.0f,
      1.0f, 0.0f,  1.0f,    0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
      1.0f, 0.0f, -1.0f,    0.0f, 1.0f, 0.0f,  1.0f, 1.0f,
@@ -62,7 +56,6 @@ static const float groundVerticesData[] = {
 };
 
 void GameViewController::setupGeometry() {
-    // Cube VAO
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &cubeVBO);
     glBindVertexArray(cubeVAO);
@@ -76,7 +69,6 @@ void GameViewController::setupGeometry() {
     glEnableVertexAttribArray(2);
     glBindVertexArray(0);
 
-    // Ground VAO
     glGenVertexArrays(1, &groundVAO);
     glGenBuffers(1, &groundVBO);
     glBindVertexArray(groundVAO);
@@ -91,9 +83,33 @@ void GameViewController::setupGeometry() {
     glBindVertexArray(0);
 }
 
+void GameViewController::loadModels() {
+    std::string bikePath = getResource("Models/Bici.obj");
+    bikeModel.loadModel(bikePath);
+    bikeModelLoaded = !bikeModel.meshes.empty();
+    std::cout << "Bike model: " << (bikeModelLoaded ? "LOADED" : "FAILED") << " (" << bikeModel.meshes.size() << " meshes)" << std::endl;
+
+    std::string furgoncinoPath = getResource("Models/Furgoncino.obj");
+    furgoncinoModel.loadModel(furgoncinoPath);
+    furgoncinoModelLoaded = !furgoncinoModel.meshes.empty();
+    std::cout << "Furgoncino model: " << (furgoncinoModelLoaded ? "LOADED" : "FAILED") << " (" << furgoncinoModel.meshes.size() << " meshes)" << std::endl;
+
+    std::string maceriePath = getResource("Models/Macerie.obj");
+    macerieModel.loadModel(maceriePath);
+    macerieModelLoaded = !macerieModel.meshes.empty();
+    std::cout << "Macerie model: " << (macerieModelLoaded ? "LOADED" : "FAILED") << " (" << macerieModel.meshes.size() << " meshes)" << std::endl;
+
+    std::string stradaPath = getResource("Models/Strada.obj");
+    stradaModel.loadModel(stradaPath);
+    stradaModelLoaded = !stradaModel.meshes.empty();
+    std::cout << "Strada model: " << (stradaModelLoaded ? "LOADED" : "FAILED") << " (" << stradaModel.meshes.size() << " meshes)" << std::endl;
+}
+
 void GameViewController::setupLighting(Shader& shader) {
-    shader.setVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
-    shader.setVec3("dirLight.ambient", glm::vec3(0.35f, 0.35f, 0.35f));
+    // Inclinato leggermente di più sull'asse X per colpire le fiancate
+    shader.setVec3("dirLight.direction", glm::vec3(-0.5f, -1.0f, -0.3f));
+    // Luce ambientale raddoppiata per schiarire le ombre
+    shader.setVec3("dirLight.ambient", glm::vec3(0.65f, 0.65f, 0.65f));
     shader.setVec3("dirLight.diffuse", glm::vec3(0.8f, 0.8f, 0.75f));
     shader.setVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
     shader.setFloat("shininess", 32.0f);
@@ -105,6 +121,7 @@ void GameViewController::renderCube(Shader& shader, glm::vec3 position, glm::vec
     model = glm::scale(model, scale);
     shader.setMat4("model", model);
     shader.setBool("useTexture", false);
+    shader.setBool("useMaterialColor", false);
     shader.setVec3("objectColor", color);
     shader.setFloat("alpha", 1.0f);
     glBindVertexArray(cubeVAO);
@@ -112,30 +129,116 @@ void GameViewController::renderCube(Shader& shader, glm::vec3 position, glm::vec
     glBindVertexArray(0);
 }
 
+void GameViewController::renderModel(Shader& shader, Model& mdl, glm::vec3 position, glm::vec3 scale, float rotationY) {
+    glm::mat4 modelMat = glm::mat4(1.0f);
+    modelMat = glm::translate(modelMat, position);
+    if (rotationY != 0.0f) {
+        modelMat = glm::rotate(modelMat, glm::radians(rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    modelMat = glm::scale(modelMat, scale);
+    shader.setMat4("model", modelMat);
+    shader.setFloat("alpha", 1.0f);
+
+    // Draw each mesh with its own material properties
+    for (unsigned int i = 0; i < mdl.meshes.size(); i++) {
+        auto& mesh = mdl.meshes[i];
+        if (!mesh.textures.empty()) {
+            // Mesh has texture maps - use them
+            shader.setBool("useTexture", true);
+            shader.setBool("useMaterialColor", false);
+        } else {
+            // No texture maps - use material color from Assimp
+            shader.setBool("useTexture", false);
+            shader.setBool("useMaterialColor", true);
+            shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+            shader.setVec3("materialSpecular", mesh.materialSpecular);
+            shader.setFloat("materialShininess", mesh.materialShininess);
+        }
+        mesh.Draw(shader);
+    }
+}
+
 void GameViewController::renderRoad(Shader& shader) {
     float roadHalfWidth = bike.laneWidth * 2.0f;
     float roadLength = level.length + 20.0f;
 
-    // Main road surface
+    if (stradaModelLoaded) {
+        // Strada.obj: extends X[-1..42], Z[-0.03..3.5], Y~0
+        // Model length along X = ~43 units, width along Z = ~3.5 units
+        // We need it along -Z direction, width across X
+        // => Rotate -90 deg around Y, then scale width to match road
+        // After rotation: length goes along Z, width along X
+        
+        float modelLength = 43.0f;  // OBJ X-extent
+        float modelWidth = 3.5f;    // OBJ Z-extent
+        
+        // We want the road width to cover ~roadHalfWidth*2 = laneWidth*4
+        float targetWidth = roadHalfWidth * 2.0f; // = laneWidth * 4 = 12
+        float scaleX = targetWidth / modelLength;  // Scale what was X (now Z after rotation)
+        float scaleZ = targetWidth / modelWidth;   // Scale Z dimension
+        // Use uniform scale for simplicity
+        float roadScale = (targetWidth / modelWidth) * 0.4f; // Scale to fit road width
+        
+        // Tile road segments along -Z
+        float segmentLengthAfterScale = modelLength * roadScale;
+        
+        for (float z = 10.0f; z > -(level.length + 30.0f); z -= segmentLengthAfterScale) {
+            glm::mat4 modelMat = glm::mat4(1.0f);
+            // Translate to position
+            modelMat = glm::translate(modelMat, glm::vec3(0.0f, 0.0f, z));
+            // Rotate -90 deg around Y: X becomes -Z, Z stays
+            modelMat = glm::rotate(modelMat, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            // Scale uniformly
+            modelMat = glm::scale(modelMat, glm::vec3(roadScale, 1.0f, roadScale));
+            // Center the model (it goes from X=-1 to X=42, center at ~20.5)
+            modelMat = glm::translate(modelMat, glm::vec3(-20.5f, 0.0f, -1.75f));
+            
+            shader.setMat4("model", modelMat);
+            shader.setFloat("alpha", 1.0f);
+            
+            // Road has texture
+            for (unsigned int i = 0; i < stradaModel.meshes.size(); i++) {
+                auto& mesh = stradaModel.meshes[i];
+                if (!mesh.textures.empty()) {
+                    shader.setBool("useTexture", true);
+                    shader.setBool("useMaterialColor", false);
+                } else {
+                    shader.setBool("useTexture", false);
+                    shader.setBool("useMaterialColor", true);
+                    shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+                    shader.setVec3("materialSpecular", mesh.materialSpecular);
+                    shader.setFloat("materialShininess", mesh.materialShininess);
+                }
+                mesh.Draw(shader);
+            }
+        }
+    } else {
+        // Fallback: procedural road
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -0.01f, -roadLength / 2.0f + 10.0f));
+        model = glm::scale(model, glm::vec3(roadHalfWidth, 1.0f, roadLength / 2.0f));
+        shader.setMat4("model", model);
+        shader.setBool("useTexture", false);
+        shader.setBool("useMaterialColor", false);
+        shader.setVec3("objectColor", glm::vec3(0.25f, 0.25f, 0.28f));
+        shader.setFloat("alpha", 1.0f);
+        glBindVertexArray(groundVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
+    // Grass on both sides (always procedural)
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -0.01f, -roadLength / 2.0f + 10.0f));
-    model = glm::scale(model, glm::vec3(roadHalfWidth, 1.0f, roadLength / 2.0f));
+    model = glm::translate(model, glm::vec3(-roadHalfWidth - 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
+    model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
     shader.setMat4("model", model);
     shader.setBool("useTexture", false);
-    shader.setVec3("objectColor", glm::vec3(0.25f, 0.25f, 0.28f)); // Dark asphalt
+    shader.setBool("useMaterialColor", false);
+    shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f));
     shader.setFloat("alpha", 1.0f);
     glBindVertexArray(groundVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    // Grass on left side
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-roadHalfWidth - 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
-    model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
-    shader.setMat4("model", model);
-    shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f)); // Green grass
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    // Grass on right side
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(roadHalfWidth + 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
     model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
@@ -144,23 +247,16 @@ void GameViewController::renderRoad(Shader& shader) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
-    // Lane divider lines (white strips on the road)
+    // Lane divider lines (dashed white strips)
     float lineHeight = 0.02f;
-    float lineWidth = 0.1f;
-
-    // Left lane divider (between lane 0 and lane 1)
     float dividerX1 = -bike.laneWidth / 2.0f;
-    for (float z = 5.0f; z > -(level.length + 5.0f); z -= 4.0f) {
-        renderCube(shader, glm::vec3(dividerX1, lineHeight, z), glm::vec3(lineWidth, 0.02f, 2.0f), glm::vec3(1.0f, 1.0f, 0.9f));
-    }
-
-    // Right lane divider (between lane 1 and lane 2)
     float dividerX2 = bike.laneWidth / 2.0f;
     for (float z = 5.0f; z > -(level.length + 5.0f); z -= 4.0f) {
-        renderCube(shader, glm::vec3(dividerX2, lineHeight, z), glm::vec3(lineWidth, 0.02f, 2.0f), glm::vec3(1.0f, 1.0f, 0.9f));
+        renderCube(shader, glm::vec3(dividerX1, lineHeight, z), glm::vec3(0.1f, 0.02f, 2.0f), glm::vec3(1.0f, 1.0f, 0.9f));
+        renderCube(shader, glm::vec3(dividerX2, lineHeight, z), glm::vec3(0.1f, 0.02f, 2.0f), glm::vec3(1.0f, 1.0f, 0.9f));
     }
 
-    // Road edge lines (solid)
+    // Road edge lines
     float edgeLeft = -roadHalfWidth + 0.15f;
     float edgeRight = roadHalfWidth - 0.15f;
     for (float z = 5.0f; z > -(level.length + 5.0f); z -= 6.0f) {
@@ -173,26 +269,40 @@ void GameViewController::renderBike(Shader& shader) {
     glm::vec3 bikePos = bike.getPosition();
 
     if (bikeModelLoaded) {
-        // Render loaded Assimp model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, bikePos);
-        model = glm::scale(model, glm::vec3(0.8f, 0.8f, 0.8f));
-        shader.setMat4("model", model);
-        shader.setBool("useTexture", false);
-        shader.setVec3("objectColor", glm::vec3(0.2f, 0.6f, 0.3f));
+        // Bici.obj: X[-0.33..0.43], Y[-0.84..1.45], Z[-1.89..1.7]
+        // Model height ~2.3, length along Z ~3.6
+        // Center it at origin, lift to ground level
+        // Bici Y min = -0.84, so we need to shift up by 0.84
+        glm::mat4 modelMat = glm::mat4(1.0f);
+        modelMat = glm::translate(modelMat, bikePos);
+        // Shift up so bottom is at Y=0
+        modelMat = glm::translate(modelMat, glm::vec3(0.0f, 0.84f, 0.0f));
+        // Scale to a reasonable size (model is ~3.6 long, bike should be ~1.5m)
+        float bikeScale = 0.25f;
+        modelMat = glm::scale(modelMat, glm::vec3(bikeScale, bikeScale, bikeScale));
+        shader.setMat4("model", modelMat);
         shader.setFloat("alpha", 1.0f);
-        bikeModel.Draw(shader);
+
+        for (unsigned int i = 0; i < bikeModel.meshes.size(); i++) {
+            auto& mesh = bikeModel.meshes[i];
+            if (!mesh.textures.empty()) {
+                shader.setBool("useTexture", true);
+                shader.setBool("useMaterialColor", false);
+            } else {
+                shader.setBool("useTexture", false);
+                shader.setBool("useMaterialColor", true);
+                shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+                shader.setVec3("materialSpecular", mesh.materialSpecular);
+                shader.setFloat("materialShininess", mesh.materialShininess);
+            }
+            mesh.Draw(shader);
+        }
     } else {
-        // Fallback: render a placeholder bike from cubes
-        // Frame/body
+        // Fallback
         renderCube(shader, bikePos + glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.2f), glm::vec3(0.2f, 0.55f, 0.8f));
-        // Seat
         renderCube(shader, bikePos + glm::vec3(0.0f, 1.0f, 0.15f), glm::vec3(0.3f, 0.15f, 0.4f), glm::vec3(0.15f, 0.15f, 0.15f));
-        // Handlebars
         renderCube(shader, bikePos + glm::vec3(0.0f, 0.9f, -0.5f), glm::vec3(0.7f, 0.1f, 0.1f), glm::vec3(0.3f, 0.3f, 0.3f));
-        // Front wheel
         renderCube(shader, bikePos + glm::vec3(0.0f, 0.2f, -0.55f), glm::vec3(0.08f, 0.4f, 0.4f), glm::vec3(0.1f, 0.1f, 0.1f));
-        // Rear wheel
         renderCube(shader, bikePos + glm::vec3(0.0f, 0.2f, 0.45f), glm::vec3(0.08f, 0.4f, 0.4f), glm::vec3(0.1f, 0.1f, 0.1f));
     }
 }
@@ -200,40 +310,91 @@ void GameViewController::renderBike(Shader& shader) {
 void GameViewController::renderObstacles(Shader& shader) {
     for (const auto& obs : level.obstacles) {
         if (!obs.active) continue;
-        // Only render if reasonably close to the bike
         if (obs.posZ > bike.posZ + 15.0f || obs.posZ < bike.posZ - 80.0f) continue;
 
         glm::vec3 pos = obs.getPosition(bike.laneWidth);
-        glm::vec3 scale = obs.getScale();
-        renderCube(shader, pos, scale, obs.color);
+
+        if (obs.type == OBSTACLE_TALL && furgoncinoModelLoaded) {
+            // Furgoncino.obj: X[-1.92..1.92], Y[-1.71..1.65], Z[-3.58..3.62]
+            // Width ~3.84 in X, height ~3.36 in Y, length ~7.2 in Z
+            // Need to: scale down to fit in one lane (~3.0 width), center, lift to ground
+            float furgScale = 0.28f;  // Scales down to fit in lane
+            
+            glm::mat4 modelMat = glm::mat4(1.0f);
+            modelMat = glm::translate(modelMat, glm::vec3(pos.x, 0.0f, pos.z));
+            // Rotate randomly around Y (so the vans face different directions)
+            modelMat = glm::rotate(modelMat, glm::radians(obs.rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+            modelMat = glm::scale(modelMat, glm::vec3(furgScale, furgScale, furgScale));
+            // Lift: Y min = -1.71, shift up
+            modelMat = glm::translate(modelMat, glm::vec3(0.0f, 1.71f, 0.0f));
+            
+            shader.setMat4("model", modelMat);
+            shader.setFloat("alpha", 1.0f);
+
+            for (unsigned int i = 0; i < furgoncinoModel.meshes.size(); i++) {
+                auto& mesh = furgoncinoModel.meshes[i];
+                if (!mesh.textures.empty()) {
+                    shader.setBool("useTexture", true);
+                    shader.setBool("useMaterialColor", false);
+                } else {
+                    shader.setBool("useTexture", false);
+                    shader.setBool("useMaterialColor", true);
+                    shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+                    shader.setVec3("materialSpecular", mesh.materialSpecular);
+                    shader.setFloat("materialShininess", mesh.materialShininess);
+                }
+                mesh.Draw(shader);
+            }
+        } else if (obs.type == OBSTACLE_LOW && macerieModelLoaded) {
+            // Macerie.obj: X[3.47..23.89], Y[0.58..3.84], Z[14.26..34.8]
+            // Size: ~20.4 in X, ~3.3 in Y, ~20.5 in Z. NOT centered!
+            // Center: X=13.68, Y=2.21, Z=24.53
+            // Need to scale WAY down (from ~20 units to ~2 units)
+            float macScale = 0.2f;  // Increased scale
+            
+            glm::mat4 modelMat = glm::mat4(1.0f);
+            modelMat = glm::translate(modelMat, glm::vec3(pos.x, 0.0f, pos.z));
+            modelMat = glm::scale(modelMat, glm::vec3(macScale, macScale, macScale));
+            // Center the model: shift by -center
+            modelMat = glm::translate(modelMat, glm::vec3(-13.68f, -0.58f, -24.53f));
+            
+            shader.setMat4("model", modelMat);
+            shader.setFloat("alpha", 1.0f);
+
+            for (unsigned int i = 0; i < macerieModel.meshes.size(); i++) {
+                auto& mesh = macerieModel.meshes[i];
+                shader.setBool("useTexture", false);
+                shader.setBool("useMaterialColor", true);
+                shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+                shader.setVec3("materialSpecular", mesh.materialSpecular);
+                shader.setFloat("materialShininess", mesh.materialShininess);
+                mesh.Draw(shader);
+            }
+        } else {
+            // Fallback: colored cubes
+            glm::vec3 scale = obs.getScale();
+            renderCube(shader, pos, scale, obs.color);
+        }
     }
 }
 
 void GameViewController::renderHUD(GLFWwindow* window) {
-    // Switch to 2D orthographic projection for HUD
     shaderText.use();
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(SCR_WIDTH), 0.0f, static_cast<float>(SCR_HEIGHT));
     shaderText.setMat4("projection", projection);
 
     float scale = static_cast<float>(SCR_HEIGHT) / 1080.0f;
 
-    // -- Progress bar --
     float progress = level.getProgress(bike.posZ);
     int pct = static_cast<int>(progress * 100.0f);
     std::stringstream ss;
     ss << pct << "%";
 
-    // Bar background
     float barX = 50.0f * scale;
     float barY = static_cast<float>(SCR_HEIGHT) - 50.0f * scale;
-    float barW = 300.0f * scale;
-    float barH = 20.0f * scale;
 
-    // Render progress text
     RenderText(shaderText, "Progresso: " + ss.str(), barX, barY + 5.0f * scale, 0.5f * scale, glm::vec3(1.0f, 1.0f, 1.0f));
 
-    // Render progress bar using cubes (switch back to game shader briefly)
-    // Actually, use text-based visualization for simplicity:
     std::string barFill = "";
     int fillCount = static_cast<int>(progress * 20);
     for (int i = 0; i < 20; i++) {
@@ -241,76 +402,48 @@ void GameViewController::renderHUD(GLFWwindow* window) {
     }
     RenderText(shaderText, "[" + barFill + "]", barX, barY - 25.0f * scale, 0.45f * scale, glm::vec3(0.4f, 0.9f, 0.4f));
 
-    // -- Speed display --
     std::stringstream speedSS;
     speedSS << std::fixed << std::setprecision(1) << bike.speed;
     RenderText(shaderText, "Velocita: " + speedSS.str(), barX + 350.0f * scale, barY + 5.0f * scale, 0.4f * scale, glm::vec3(0.9f, 0.9f, 0.6f));
 
-    // -- Key layout at bottom --
     float keyY = 80.0f * scale;
     float keyScale = 0.5f * scale;
     float centerX = static_cast<float>(SCR_WIDTH) / 2.0f;
 
-    // Check key states for feedback
     bool aPressed = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
     bool dPressed = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
     bool spacePressed = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
     bool cPressed = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
 
-    // Colors: gray transparent when not pressed, white when pressed
     glm::vec3 inactiveColor = glm::vec3(0.5f, 0.5f, 0.5f);
     glm::vec3 activeColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
-    // Render key labels
     RenderText(shaderText, "[A] Sinistra", centerX - 280.0f * scale, keyY, keyScale, aPressed ? activeColor : inactiveColor);
     RenderText(shaderText, "[D] Destra", centerX + 50.0f * scale, keyY, keyScale, dPressed ? activeColor : inactiveColor);
     RenderText(shaderText, "[SPACE] Salta", centerX - 130.0f * scale, keyY - 35.0f * scale, keyScale, spacePressed ? activeColor : inactiveColor);
     RenderText(shaderText, "[C] Camera", centerX - 280.0f * scale, keyY - 70.0f * scale, 0.4f * scale, cPressed ? activeColor : inactiveColor);
 
-    // Camera mode indicator
     std::string cameraMode = isFirstPerson ? "1a Persona" : "3a Persona";
     RenderText(shaderText, "Camera: " + cameraMode, centerX + 50.0f * scale, keyY - 70.0f * scale, 0.4f * scale, glm::vec3(0.7f, 0.7f, 0.9f));
 }
 
 void GameViewController::handleInput(GLFWwindow* window) {
-    // ESC to quit
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 
-    // A key - move left (trigger once)
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        if (!aKeyWasPressed) {
-            bike.moveLeft();
-            aKeyWasPressed = true;
-        }
-    } else {
-        aKeyWasPressed = false;
-    }
+        if (!aKeyWasPressed) { bike.moveLeft(); aKeyWasPressed = true; }
+    } else { aKeyWasPressed = false; }
 
-    // D key - move right (trigger once)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        if (!dKeyWasPressed) {
-            bike.moveRight();
-            dKeyWasPressed = true;
-        }
-    } else {
-        dKeyWasPressed = false;
-    }
+        if (!dKeyWasPressed) { bike.moveRight(); dKeyWasPressed = true; }
+    } else { dKeyWasPressed = false; }
 
-    // SPACE - jump
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        if (!spaceKeyWasPressed) {
-            bike.jump();
-            // Play jump sound if available
-            // sfxJump.playSound();
-            spaceKeyWasPressed = true;
-        }
-    } else {
-        spaceKeyWasPressed = false;
-    }
+        if (!spaceKeyWasPressed) { bike.jump(); spaceKeyWasPressed = true; }
+    } else { spaceKeyWasPressed = false; }
 
-    // C - toggle camera
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
         if (!cKeyWasPressed) {
             isFirstPerson = !isFirstPerson;
@@ -319,17 +452,13 @@ void GameViewController::handleInput(GLFWwindow* window) {
                 firstMouseMove = true;
             } else {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                // Reset camera orientation
                 gameCamera.Yaw = -90.0f;
                 gameCamera.Pitch = -15.0f;
             }
             cKeyWasPressed = true;
         }
-    } else {
-        cKeyWasPressed = false;
-    }
+    } else { cKeyWasPressed = false; }
 
-    // Handle mouse for first person camera
     if (isFirstPerson) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -343,7 +472,7 @@ void GameViewController::handleInput(GLFWwindow* window) {
         }
 
         float xoffset = xpos - lastMouseX;
-        float yoffset = lastMouseY - ypos; // Reversed: y-coordinates bottom to top
+        float yoffset = lastMouseY - ypos;
         lastMouseX = xpos;
         lastMouseY = ypos;
 
@@ -355,15 +484,11 @@ void GameViewController::updateCamera() {
     glm::vec3 bikePos = bike.getPosition();
 
     if (isFirstPerson) {
-        // First person: camera at bike's handlebar height, looking forward
         gameCamera.Position = bikePos + glm::vec3(0.0f, 1.2f, -0.3f);
-        // Camera Front/Up/Right are managed by ProcessMouseMovement
     } else {
-        // Third person: camera behind and above the bike
         float camDistance = 8.0f;
         float camHeight = 5.0f;
         gameCamera.Position = bikePos + glm::vec3(0.0f, camHeight, camDistance);
-        // Look at the bike
         glm::vec3 target = bikePos + glm::vec3(0.0f, 1.0f, -5.0f);
         gameCamera.Front = glm::normalize(target - gameCamera.Position);
         gameCamera.Right = glm::normalize(glm::cross(gameCamera.Front, glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -395,89 +520,50 @@ void GameViewController::cleanup() {
 
 GameResult GameViewController::main(GLFWwindow* window) {
     setupGeometry();
+    loadModels();
     level.generate();
     bike.reset();
     gameCamera = Camera(glm::vec3(0.0f, 5.0f, 8.0f));
     gameCamera.Yaw = -90.0f;
     gameCamera.Pitch = -15.0f;
 
-    // Try to load bike model via Assimp
-    std::string modelPath = getResource("Models/placeholder/placeholder.obj");
-    bikeModel.loadModel(modelPath);
-    bikeModelLoaded = !bikeModel.meshes.empty();
-    if (bikeModelLoaded) {
-        std::cout << "Bike model loaded successfully via Assimp" << std::endl;
-    } else {
-        std::cout << "Bike model not found, using procedural placeholder" << std::endl;
-    }
-
-    // Initialize sounds (graceful if files missing)
-    // gameMusic = SoundManager(getResource("Music/game.mp3"), soundEngine.volMusic, true, &soundEngine);
-    // sfxJump = SoundManager(getResource("SFX/jump.wav"), soundEngine.volSound, false, &soundEngine);
-    // sfxCrash = SoundManager(getResource("SFX/crash.wav"), soundEngine.volSound, false, &soundEngine);
-    // gameMusic.playSound();
-
-    // Ensure cursor starts normal (third person default)
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     while (!glfwWindowShouldClose(window)) {
-        // Timing
         const auto currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
-        // Clamp delta time to avoid huge jumps
         if (deltaTime > 0.05f) deltaTime = 0.05f;
 
-        // Input
         handleInput(window);
-
-        // Update
         bike.update(deltaTime);
 
-        // Check collision
         if (level.checkCollisions(bike)) {
-            // Game Over
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            // sfxCrash.playSound();
-            // gameMusic.stopSound();
-
             float completionPct = level.getProgress(bike.posZ) * 100.0f;
             GameOverViewController gameOver;
             GameResult result = gameOver.main(window, completionPct);
-            if (result == RESULT_RESTART) {
-                reset();
-                continue;
-            }
+            if (result == RESULT_RESTART) { reset(); continue; }
             cleanup();
             return RESULT_QUIT;
         }
 
-        // Check level completion
         if (level.isCompleted(bike.posZ)) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            // gameMusic.stopSound();
-
             VictoryViewController victory;
             GameResult result = victory.main(window);
-            if (result == RESULT_RESTART) {
-                reset();
-                continue;
-            }
+            if (result == RESULT_RESTART) { reset(); continue; }
             cleanup();
             return RESULT_QUIT;
         }
 
-        // Update camera
         updateCamera();
 
-        // === RENDER ===
-        glClearColor(0.45f, 0.7f, 0.95f, 1.0f); // Sky blue
+        glClearColor(0.45f, 0.7f, 0.95f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
 
-        // Setup 3D shader
         gameShader.use();
         glm::mat4 projection = glm::perspective(
             glm::radians(45.0f),
@@ -490,12 +576,10 @@ GameResult GameViewController::main(GLFWwindow* window) {
         gameShader.setVec3("viewPos", gameCamera.Position);
         setupLighting(gameShader);
 
-        // Render 3D scene
         renderRoad(gameShader);
         renderObstacles(gameShader);
         renderBike(gameShader);
 
-        // Render HUD (2D overlay)
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         renderHUD(window);

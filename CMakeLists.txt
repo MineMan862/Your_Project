@@ -169,10 +169,12 @@ if(APPLE)
     )
 elseif(WIN32 OR (UNIX AND NOT APPLE))
     message(STATUS "Post-build actions on Windows/Linux")
-    add_custom_command(TARGET ${APP_NAME} POST_BUILD
+    # Always copy resources (even when no source code changed)
+    add_custom_target(copy_resources ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/OpenGLApp/resources
-            $<TARGET_FILE_DIR:${APP_NAME}>/resources
+            ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources
+            COMMENT "Copying resources to output directory..."
     )
 endif()
 

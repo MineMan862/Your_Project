@@ -69,6 +69,8 @@ private:
     bool macerieModelLoaded = false;
     Model stradaModel;       // Road segment
     bool stradaModelLoaded = false;
+    Model planeModel;        // Scenery plane
+    bool planeModelLoaded = false;
 
     // Sound
     SoundManager gameMusic;

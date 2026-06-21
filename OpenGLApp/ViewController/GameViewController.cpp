@@ -3,6 +3,7 @@
 #include "VictoryViewController.h"
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 #include <assimp/scene.h>
 
 // Unit cube vertex data: position(3) + normal(3) + texcoord(2)
@@ -93,6 +94,26 @@ void GameViewController::loadModels() {
     furgoncinoModel.loadModel(furgoncinoPath);
     furgoncinoModelLoaded = !furgoncinoModel.meshes.empty();
     std::cout << "Furgoncino model: " << (furgoncinoModelLoaded ? "LOADED" : "FAILED") << " (" << furgoncinoModel.meshes.size() << " meshes)" << std::endl;
+    // Debug: write material colors to log file
+    {
+        std::ofstream debugLog("debug_materials.txt");
+        debugLog << "=== FURGONCINO MESHES ===" << std::endl;
+        for (unsigned int i = 0; i < furgoncinoModel.meshes.size(); i++) {
+            auto& m = furgoncinoModel.meshes[i];
+            debugLog << "Mesh " << i << ": Kd(" << m.materialDiffuse.r << ", " << m.materialDiffuse.g << ", " << m.materialDiffuse.b
+                     << ") Ks(" << m.materialSpecular.r << ", " << m.materialSpecular.g << ", " << m.materialSpecular.b
+                     << ") Ns=" << m.materialShininess
+                     << " textures=" << m.textures.size() << std::endl;
+        }
+        debugLog << "\n=== BICI MESHES ===" << std::endl;
+        for (unsigned int i = 0; i < bikeModel.meshes.size(); i++) {
+            auto& m = bikeModel.meshes[i];
+            debugLog << "Mesh " << i << ": Kd(" << m.materialDiffuse.r << ", " << m.materialDiffuse.g << ", " << m.materialDiffuse.b
+                     << ") textures=" << m.textures.size() << std::endl;
+        }
+        debugLog.close();
+        std::cout << "Debug material info written to debug_materials.txt" << std::endl;
+    }
 
     std::string maceriePath = getResource("Models/Macerie.obj");
     macerieModel.loadModel(maceriePath);
@@ -103,14 +124,19 @@ void GameViewController::loadModels() {
     stradaModel.loadModel(stradaPath);
     stradaModelLoaded = !stradaModel.meshes.empty();
     std::cout << "Strada model: " << (stradaModelLoaded ? "LOADED" : "FAILED") << " (" << stradaModel.meshes.size() << " meshes)" << std::endl;
+
+    std::string planePath = getResource("Models/plane.obj");
+    planeModel.loadModel(planePath);
+    planeModelLoaded = !planeModel.meshes.empty();
+    std::cout << "Plane model: " << (planeModelLoaded ? "LOADED" : "FAILED") << " (" << planeModel.meshes.size() << " meshes)" << std::endl;
 }
 
 void GameViewController::setupLighting(Shader& shader) {
-    // Inclinato leggermente di più sull'asse X per colpire le fiancate
-    shader.setVec3("dirLight.direction", glm::vec3(-0.5f, -1.0f, -0.3f));
-    // Luce ambientale raddoppiata per schiarire le ombre
-    shader.setVec3("dirLight.ambient", glm::vec3(0.65f, 0.65f, 0.65f));
-    shader.setVec3("dirLight.diffuse", glm::vec3(0.8f, 0.8f, 0.75f));
+    // Light direction pointing down, slightly forward and to the left
+    shader.setVec3("dirLight.direction", glm::vec3(-0.3f, -1.0f, -0.5f));
+    // High ambient light so shadows aren't too dark and white materials look white
+    shader.setVec3("dirLight.ambient", glm::vec3(0.85f, 0.85f, 0.85f));
+    shader.setVec3("dirLight.diffuse", glm::vec3(0.9f, 0.9f, 0.9f));
     shader.setVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
     shader.setFloat("shininess", 32.0f);
 }
@@ -168,29 +194,30 @@ void GameViewController::renderRoad(Shader& shader) {
         // We need it along -Z direction, width across X
         // => Rotate -90 deg around Y, then scale width to match road
         // After rotation: length goes along Z, width along X
-        
         float modelLength = 43.0f;  // OBJ X-extent
         float modelWidth = 3.5f;    // OBJ Z-extent
         
         // We want the road width to cover ~roadHalfWidth*2 = laneWidth*4
         float targetWidth = roadHalfWidth * 2.0f; // = laneWidth * 4 = 12
-        float scaleX = targetWidth / modelLength;  // Scale what was X (now Z after rotation)
-        float scaleZ = targetWidth / modelWidth;   // Scale Z dimension
-        // Use uniform scale for simplicity
-        float roadScale = (targetWidth / modelWidth) * 0.4f; // Scale to fit road width
+        // Use uniform scale for simplicity.
+        float roadScale = (targetWidth / modelWidth) * 0.4f; // Scale that keeps dimensions looking correct
         
         // Tile road segments along -Z
         float segmentLengthAfterScale = modelLength * roadScale;
         
+        // Offset to align the road horizontally
+        // Increasing the left shift to center the single road model
+        float offsetX = -2.5f; 
+        
         for (float z = 10.0f; z > -(level.length + 30.0f); z -= segmentLengthAfterScale) {
             glm::mat4 modelMat = glm::mat4(1.0f);
-            // Translate to position
-            modelMat = glm::translate(modelMat, glm::vec3(0.0f, 0.0f, z));
+            // Translate to position in world space
+            modelMat = glm::translate(modelMat, glm::vec3(offsetX, 0.0f, z));
             // Rotate -90 deg around Y: X becomes -Z, Z stays
             modelMat = glm::rotate(modelMat, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             // Scale uniformly
             modelMat = glm::scale(modelMat, glm::vec3(roadScale, 1.0f, roadScale));
-            // Center the model (it goes from X=-1 to X=42, center at ~20.5)
+            // Center the model locally (it goes from X=-1 to X=42, Z from 0 to 3.5)
             modelMat = glm::translate(modelMat, glm::vec3(-20.5f, 0.0f, -1.75f));
             
             shader.setMat4("model", modelMat);
@@ -226,26 +253,58 @@ void GameViewController::renderRoad(Shader& shader) {
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
     }
+    // Scenery (Grass/Forest plane on both sides)
+    if (planeModelLoaded) {
+        float planeSize = 22.25f; // Based on OBJ vertices (-11.129 to 11.129)
+        for (float z = 20.0f; z > -(level.length + 50.0f); z -= planeSize) {
+            // Left side (shifted closer to center, from -20.0 to -19.0)
+            glm::mat4 modelL = glm::mat4(1.0f);
+            modelL = glm::translate(modelL, glm::vec3(-19.0f, -0.05f, z));
+            shader.setMat4("model", modelL);
+            shader.setFloat("alpha", 1.0f);
+            for (auto& mesh : planeModel.meshes) {
+                if (!mesh.textures.empty()) {
+                    shader.setBool("useTexture", true);
+                    shader.setBool("useMaterialColor", false);
+                } else {
+                    shader.setBool("useTexture", false);
+                    shader.setBool("useMaterialColor", true);
+                    shader.setVec3("materialDiffuse", mesh.materialDiffuse);
+                    shader.setVec3("materialSpecular", mesh.materialSpecular);
+                    shader.setFloat("materialShininess", mesh.materialShininess);
+                }
+                mesh.Draw(shader);
+            }
 
-    // Grass on both sides (always procedural)
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-roadHalfWidth - 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
-    model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
-    shader.setMat4("model", model);
-    shader.setBool("useTexture", false);
-    shader.setBool("useMaterialColor", false);
-    shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f));
-    shader.setFloat("alpha", 1.0f);
-    glBindVertexArray(groundVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+            // Right side (shifted closer to center, from 15.0 to 14.0)
+            glm::mat4 modelR = glm::mat4(1.0f);
+            modelR = glm::translate(modelR, glm::vec3(14.0f, -0.05f, z));
+            shader.setMat4("model", modelR);
+            for (auto& mesh : planeModel.meshes) {
+                mesh.Draw(shader);
+            }
+        }
+    } else {
+        // Grass on both sides (fallback procedural)
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-roadHalfWidth - 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
+        model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
+        shader.setMat4("model", model);
+        shader.setBool("useTexture", false);
+        shader.setBool("useMaterialColor", false);
+        shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f));
+        shader.setFloat("alpha", 1.0f);
+        glBindVertexArray(groundVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(roadHalfWidth + 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
-    model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
-    shader.setMat4("model", model);
-    shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f));
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(roadHalfWidth + 15.0f, -0.02f, -roadLength / 2.0f + 10.0f));
+        model = glm::scale(model, glm::vec3(15.0f, 1.0f, roadLength / 2.0f));
+        shader.setMat4("model", model);
+        shader.setVec3("objectColor", glm::vec3(0.2f, 0.5f, 0.15f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
 
     // Lane divider lines (dashed white strips)
     float lineHeight = 0.02f;

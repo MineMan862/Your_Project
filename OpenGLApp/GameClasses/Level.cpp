@@ -1,81 +1,92 @@
 #include "Level.h"
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
-#include <algorithm>
 
 Level::Level() {}
 
 void Level::generate() {
-    obstacles.clear();
+  obstacles.clear();
+  srand(static_cast<unsigned>(time(nullptr)));
+  nextObstacleZ = -20.0f;
+}
 
-    // Seed random
-    srand(static_cast<unsigned>(time(nullptr)));
+bool Level::checkCollisions(const Bike &bike) const {
+  glm::vec3 bikeMin = bike.getAABBMin();
+  glm::vec3 bikeMax = bike.getAABBMax();
 
-    // Generate ~25 obstacles spread along the level
-    float spacing = length / 27.0f; // ~7.4 units between obstacles
+  for (const auto &obs : obstacles) {
+    if (!obs.active)
+      continue;
 
-    for (int i = 0; i < 25; i++) {
-        float z = -(spacing * (i + 1)); // Negative Z (forward)
-        int lane = rand() % 3;          // Random lane 0-2
+    if (std::abs(obs.posZ - bike.posZ) > 10.0f)
+      continue;
 
-        // Mix of tall and low obstacles
-        // More tall at beginning, mix later
-        ObstacleType type;
-        if (i < 8) {
-            type = OBSTACLE_TALL; // First section: only tall (learn lane switching)
-        } else if (i < 15) {
-            type = (rand() % 3 == 0) ? OBSTACLE_LOW : OBSTACLE_TALL; // Mix
-        } else {
-            type = (rand() % 2 == 0) ? OBSTACLE_LOW : OBSTACLE_TALL; // More mix
-        }
+    glm::vec3 obsMin = obs.getAABBMin(laneWidth);
+    glm::vec3 obsMax = obs.getAABBMax(laneWidth);
 
-        obstacles.push_back(Obstacle(lane, z, type, laneWidth));
-
-        // Occasionally add a second obstacle on a different lane for extra challenge
-        if (i > 10 && rand() % 4 == 0) {
-            int lane2 = (lane + 1 + rand() % 2) % 3; // Different lane
-            obstacles.push_back(Obstacle(lane2, z, OBSTACLE_TALL, laneWidth));
-        }
+    if (aabbOverlap(bikeMin, bikeMax, obsMin, obsMax)) {
+      return true;
     }
+  }
+  return false;
 }
 
-bool Level::checkCollisions(const Bike& bike) const {
-    glm::vec3 bikeMin = bike.getAABBMin();
-    glm::vec3 bikeMax = bike.getAABBMax();
+int Level::checkPowerUp(const Bike &bike) {
+  for (auto &pu : powerUps) {
+    if (!pu.active)
+      continue;
 
-    for (const auto& obs : obstacles) {
-        if (!obs.active) continue;
-
-        // Only check nearby obstacles (optimization)
-        if (std::abs(obs.posZ - bike.posZ) > 10.0f) continue;
-
-        glm::vec3 obsMin = obs.getAABBMin(laneWidth);
-        glm::vec3 obsMax = obs.getAABBMax(laneWidth);
-
-        if (aabbOverlap(bikeMin, bikeMax, obsMin, obsMax)) {
-            return true;
-        }
+    if (bike.targetLane == pu.lane && std::abs(pu.posZ - bike.posZ) < 5.0f) {
+      pu.active = false;
+      return pu.type;
     }
-    return false;
+  }
+  return -1;
 }
 
-float Level::getProgress(float bikeZ) const {
-    float progress = (-bikeZ) / length;
-    if (progress < 0.0f) progress = 0.0f;
-    if (progress > 1.0f) progress = 1.0f;
-    return progress;
+void Level::update(float bikeZ) {
+  obstacles.erase(std::remove_if(obstacles.begin(), obstacles.end(),
+                                 [bikeZ](const Obstacle &obs) {
+                                   return obs.posZ > bikeZ + 50.0f;
+                                 }),
+                  obstacles.end());
+  powerUps.erase(std::remove_if(powerUps.begin(), powerUps.end(),
+                                [bikeZ](const PowerUp &pu) {
+                                  return pu.posZ > bikeZ + 40.0f || !pu.active;
+                                }),
+                 powerUps.end());
+
+  static float nextPowerUpZ = -100.0f;
+  while (nextPowerUpZ > bikeZ - 250.0f) {
+    int laneP = rand() % 3;
+    int typeP = rand() % 2;
+    powerUps.push_back(PowerUp{laneP, nextPowerUpZ, typeP, true});
+    nextPowerUpZ -= (100.0f + rand() % 150);
+  }
+  while (nextObstacleZ > bikeZ - 250.0f) {
+    int lane = rand() % 3;
+    ObstacleType type = (rand() % 2 == 0) ? OBSTACLE_LOW : OBSTACLE_TALL;
+    obstacles.push_back(Obstacle(lane, nextObstacleZ, type, laneWidth));
+    if (obstacleDifficulty > 10 && rand() % 3 == 0) {
+      int lane2 = (lane + 1 + rand() % 2) % 3;
+      obstacles.push_back(
+          Obstacle(lane2, nextObstacleZ, OBSTACLE_TALL, laneWidth));
+    }
+    float spacing = 15.0f - (obstacleDifficulty * 0.05f);
+    if (spacing < 9.0f)
+      spacing = 9.0f;
+
+    nextObstacleZ -= spacing;
+    obstacleDifficulty++;
+  }
 }
 
-bool Level::isCompleted(float bikeZ) const {
-    return (-bikeZ) >= length;
-}
+void Level::reset() { generate(); }
 
-void Level::reset() {
-    generate();
-}
-
-bool Level::aabbOverlap(glm::vec3 minA, glm::vec3 maxA, glm::vec3 minB, glm::vec3 maxB) const {
-    return (minA.x <= maxB.x && maxA.x >= minB.x) &&
-           (minA.y <= maxB.y && maxA.y >= minB.y) &&
-           (minA.z <= maxB.z && maxA.z >= minB.z);
+bool Level::aabbOverlap(glm::vec3 minA, glm::vec3 maxA, glm::vec3 minB,
+                        glm::vec3 maxB) const {
+  return (minA.x <= maxB.x && maxA.x >= minB.x) &&
+         (minA.y <= maxB.y && maxA.y >= minB.y) &&
+         (minA.z <= maxB.z && maxA.z >= minB.z);
 }

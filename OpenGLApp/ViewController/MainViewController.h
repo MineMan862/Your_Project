@@ -1,15 +1,17 @@
 #pragma once
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include "../DataClasses/Button.h"
-#include "../DataClasses/SpriteRenderer.h"
-#include "../DataClasses/model.h"
-#include "../DataClasses/shader.h"
+#include "DataClasses/Button.h"
 #include "DataClasses/Character.h"
 #include "DataClasses/SoundEngine.h"
 #include "DataClasses/SoundManager.h"
+#include "DataClasses/SpriteRenderer.h"
+#include "DataClasses/model.h"
+#include "DataClasses/shader.h"
 #include "GameClasses/GameCommon.h"
 #include <map>
 
@@ -32,6 +34,7 @@ extern float lastFrame;
 // Shaders
 extern Shader gameShader;
 extern Shader shaderText;
+extern Shader powerupShader;
 extern SpriteRenderer sprite2D;
 extern Shader menuBGShader;
 
@@ -59,7 +62,7 @@ public:
 
 protected:
   void loadModels();
-  bool loaded = false; // Used to check if the models are loaded
+  bool loaded = false;
   Model *roadModel;
   Model *obstacleModel;
 

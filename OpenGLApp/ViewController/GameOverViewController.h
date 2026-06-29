@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "DataClasses/shader.h"
 #include "DataClasses/Character.h"
+#include "DataClasses/shader.h"
 #include "GameClasses/GameCommon.h"
 
 #include <map>
@@ -21,9 +21,10 @@ extern Shader shaderText;
 extern std::map<GLchar, Character> Characters;
 extern unsigned int VAOText, VBOText;
 
-extern void RenderText(const Shader& shader, std::string text, float x, float y, float scale, glm::vec3 color);
+extern void RenderText(const Shader &shader, std::string text, float x, float y,
+                       float scale, glm::vec3 color);
 
 class GameOverViewController {
 public:
-    GameResult main(GLFWwindow* window, float completionPercentage);
+  GameResult main(GLFWwindow *window, float completionPercentage);
 };

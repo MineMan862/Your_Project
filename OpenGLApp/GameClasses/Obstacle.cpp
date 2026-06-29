@@ -9,12 +9,12 @@ Obstacle::Obstacle(int lane, float posZ, ObstacleType type, float laneWidth)
     : lane(lane), posZ(posZ), type(type) {
   if (type == OBSTACLE_TALL) {
     height = 2.5f;
-    color = glm::vec3(0.85f, 0.15f, 0.15f); // Red
+    color = glm::vec3(0.85f, 0.15f, 0.15f);
     rotationY = static_cast<float>(rand() % 360);
   } else {
     height = 0.6f;
-    color = glm::vec3(0.9f, 0.6f, 0.1f); // Orange
-    rotationY = 0.0f;
+    color = glm::vec3(0.9f, 0.6f, 0.1f);
+    rotationY = static_cast<float>(rand() % 360);
   }
 }
 

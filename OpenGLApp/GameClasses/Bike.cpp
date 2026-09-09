@@ -23,10 +23,28 @@ void Bike::jump() {
 }
 
 void Bike::update(float deltaTime) {
-  // Progressive speed
-  speed += speedIncrement * deltaTime;
-  if (speed > maxSpeed)
-    speed = maxSpeed;
+  // Animation
+  pedalRotation += 300.0f * deltaTime;
+
+  // Progressive speed logic based on distance
+  float dist = -posZ;
+  float easySpeed = 18.0f;
+  float normalSpeed = 28.0f;
+
+  if (dist < 500.0f) {
+    speed = easySpeed;
+  } else if (dist < 525.0f) {
+    // Smooth transition from easy to normal speed
+    float t = (dist - 500.0f) / 25.0f;
+    speed = easySpeed + (normalSpeed - easySpeed) * t;
+  } else if (dist < 1000.0f) {
+    speed = normalSpeed;
+  } else {
+    // Beyond 1000m, speed is locked but increases by 10% every 500m
+    int increments = static_cast<int>((dist - 1000.0f) / 500.0f);
+    speed = normalSpeed * std::pow(1.1f, increments);
+    if (speed > maxSpeed) speed = maxSpeed;
+  }
 
   // Forward movement (negative Z)
   posZ -= speed * deltaTime;

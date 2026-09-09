@@ -9,6 +9,7 @@
 #include "DataClasses/SoundEngine.h"
 #include "DataClasses/SoundManager.h"
 #include "DataClasses/SpriteRenderer.h"
+#include "DataClasses/Button.h"
 #include "DataClasses/camera.h"
 #include "DataClasses/model.h"
 #include "DataClasses/shader.h"
@@ -32,10 +33,13 @@ extern Shader menuBGShader;
 extern SpriteRenderer sprite2D;
 extern SoundEngine soundEngine;
 extern std::map<GLchar, Character> Characters;
+extern std::map<GLchar, Character> CharactersLarge;
 extern unsigned int VAOText, VBOText;
 
 extern void RenderText(const Shader &shader, std::string text, float x, float y,
                        float scale, glm::vec3 color);
+extern void RenderTextLarge(const Shader &shader, std::string text, float x, float y,
+                            float scale, glm::vec3 color);
 extern inline std::string getResource(const std::string &relativePath);
 extern Texture2D loadTextureFromFile(const char *file, bool alpha);
 extern void framebuffer_size_callback(GLFWwindow *window, int width,
@@ -61,8 +65,28 @@ private:
   float powerupTimer = 0.0f;
   float currentSpeedMultiplier = 1.0f;
 
+  bool isPaused = false;
+  bool isResuming = false;
+  float resumeTimer = 0.0f;
+  bool mKeyWasPressed = false;
+  bool wasFirstPersonBeforePause = false;
+
+  Button continueButton;
+  Button settingsButton;
+  Button exitButton;
+  
+  bool isSettingsMenu = false;
+  Button musicSlider;
+  Button soundSlider;
+  Button backButton;
+
   unsigned int cubeVAO = 0, cubeVBO = 0;
   unsigned int groundVAO = 0, groundVBO = 0;
+  unsigned int overlayVAO = 0, overlayVBO = 0;
+  Shader overlayShader;
+
+  unsigned int sliderVAO = 0, sliderVBO = 0;
+  Shader sliderShader;
 
   Model bikeModel;
   bool bikeModelLoaded = false;
@@ -76,6 +100,8 @@ private:
   bool planeModelLoaded = false;
   Model clockModel;
   bool clockModelLoaded = false;
+  Model alberoModel;
+  bool alberoModelLoaded = false;
 
   SoundManager gameMusic;
   SoundManager sfxJump;
@@ -88,6 +114,7 @@ private:
   void renderBike(Shader &shader);
   void renderObstacles(Shader &shader);
   void renderHUD(GLFWwindow *window);
+  void renderPauseMenu(GLFWwindow *window);
   void renderCube(Shader &shader, glm::vec3 position, glm::vec3 scale,
                   glm::vec3 color);
   void renderModel(Shader &shader, Model &mdl, glm::vec3 position,
@@ -96,6 +123,7 @@ private:
                              glm::vec3 color);
   void renderPowerUps();
   void handleInput(GLFWwindow *window);
+  void handlePauseInput(GLFWwindow *window, bool &shouldQuit);
   void updateCamera();
   void reset();
   void cleanup();

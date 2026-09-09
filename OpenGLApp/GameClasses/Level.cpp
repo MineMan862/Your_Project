@@ -9,6 +9,7 @@ void Level::generate() {
   obstacles.clear();
   srand(static_cast<unsigned>(time(nullptr)));
   nextObstacleZ = -20.0f;
+  obstacleDifficulty = 0;
 }
 
 bool Level::checkCollisions(const Bike &bike) const {
@@ -33,11 +34,19 @@ bool Level::checkCollisions(const Bike &bike) const {
 }
 
 int Level::checkPowerUp(const Bike &bike) {
+  glm::vec3 bikeMin = bike.getAABBMin();
+  glm::vec3 bikeMax = bike.getAABBMax();
+
   for (auto &pu : powerUps) {
     if (!pu.active)
       continue;
 
-    if (bike.targetLane == pu.lane && std::abs(pu.posZ - bike.posZ) < 5.0f) {
+    // Use physical AABB check instead of instantaneous targetLane check
+    glm::vec3 puCenter = pu.getPosition(laneWidth);
+    glm::vec3 puMin = puCenter - glm::vec3(0.8f, 1.0f, 0.8f); // Hitbox del powerup
+    glm::vec3 puMax = puCenter + glm::vec3(0.8f, 1.0f, 0.8f);
+
+    if (aabbOverlap(bikeMin, bikeMax, puMin, puMax)) {
       pu.active = false;
       return pu.type;
     }
@@ -66,19 +75,43 @@ void Level::update(float bikeZ) {
   }
   while (nextObstacleZ > bikeZ - 250.0f) {
     int lane = rand() % 3;
-    ObstacleType type = (rand() % 2 == 0) ? OBSTACLE_LOW : OBSTACLE_TALL;
-    obstacles.push_back(Obstacle(lane, nextObstacleZ, type, laneWidth));
-    if (obstacleDifficulty > 10 && rand() % 3 == 0) {
-      int lane2 = (lane + 1 + rand() % 2) % 3;
-      obstacles.push_back(
-          Obstacle(lane2, nextObstacleZ, OBSTACLE_TALL, laneWidth));
+    ObstacleType type;
+    
+    float currentDistance = -nextObstacleZ;
+    bool spawnSecondObstacle = false;
+
+    if (currentDistance < 500.0f) {
+      // Difficoltà Facile: 0 - 500m
+      // Solo macerie (OBSTACLE_LOW)
+      type = OBSTACLE_LOW;
+    } else if (currentDistance < 1000.0f) {
+      // Difficoltà Normale: 500 - 1000m
+      // Furgoni spawnano meno frequentemente delle macerie (es. 25% probabilità)
+      type = (rand() % 4 == 0) ? OBSTACLE_TALL : OBSTACLE_LOW;
+    } else {
+      // Difficoltà Difficile: > 1000m
+      // Spawn bilanciato 50/50
+      type = (rand() % 2 == 0) ? OBSTACLE_TALL : OBSTACLE_LOW;
+      // Possono spawnare due ostacoli vicini
+      if (rand() % 3 == 0) {
+        spawnSecondObstacle = true;
+      }
     }
-    float spacing = 15.0f - (obstacleDifficulty * 0.05f);
-    if (spacing < 9.0f)
-      spacing = 9.0f;
+
+    obstacles.push_back(Obstacle(lane, nextObstacleZ, type, laneWidth));
+    
+    if (spawnSecondObstacle) {
+      int lane2 = (lane + 1 + rand() % 2) % 3;
+      // Forza il secondo ostacolo ad essere il contrario del primo
+      ObstacleType type2 = (type == OBSTACLE_TALL) ? OBSTACLE_LOW : OBSTACLE_TALL;
+      obstacles.push_back(Obstacle(lane2, nextObstacleZ, type2, laneWidth));
+    }
+
+    float spacing = 18.0f - (currentDistance * 0.003f); // Partenza più larga
+    if (spacing < 15.0f)
+      spacing = 15.0f; // Limite minimo aumentato di 2m (15.0 invece di 13.0)
 
     nextObstacleZ -= spacing;
-    obstacleDifficulty++;
   }
 }
 

@@ -9,23 +9,29 @@ using namespace std;
 class SoundManager
 {
 public:
-	SoundManager();
-	SoundManager(std::string filename, float volume, bool isMusic, SoundEngine* engine_ptr);
+	SoundManager() = default;
+	SoundManager(std::string filename, float volume, int soundType, SoundEngine* engine_ptr);
 
 	void playSound();
-	void stopSound();
+	void stopSound() const;
 	bool isPlaying() const;
 	void changeVolume() const;
 
-	SoundManager &operator=(const SoundManager &op);
+	bool is_playing = false;
 
+	SoundManager(SoundManager&& op) noexcept;
+	SoundManager& operator=(SoundManager&& op) noexcept;
+	~SoundManager();
 
-protected:
+private:
+	std::string filename;
+	float volume = 0.0f;
+	int soundType = 0; // 0 = SFX, 1 = Menu Music, 2 = Game Music
 	unsigned int buffer = 0;
 	unsigned int source = 0;
-	bool is_playing = false;
+
 	SoundEngine* engine_ptr = nullptr;
-	std::string filename;
-	float volume = 1.0f;
-	bool isMusic = false;
+	// Disable copy to prevent OpenAL resource issues
+	SoundManager(const SoundManager&) = delete;
+	SoundManager& operator=(const SoundManager&) = delete;
 };

@@ -16,18 +16,20 @@ public:
 	int startEngine();
 	void endEngine() const;
 
-	void setVolMaster(int newVolume);
+	void setVolMaster(float newVolume);
+	void setVolMenuMusic(float newVolume);
+	void setVolGameMusic(float newVolume);
+	void setVolSuono(float newVolume);
 
 	SoundEngine &operator=(const SoundEngine &op);
 
-	void setVolMusica(float newVolume);
-	void setVolSuono(float newVolume);
-	float volMusic = 1.0f;
-	float volSound = 1.0f;
+	float masterVolume = 100.0f;
+	float volMenuMusic = 50.0f;
+	float volGameMusic = 50.0f;
+	float volSound = 50.0f;
 
 private:
 	ALCdevice* device = nullptr;
 	ALCcontext* context = nullptr;
-	ALfloat masterVolume = 1.0f;
 
 };

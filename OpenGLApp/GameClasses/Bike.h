@@ -17,6 +17,9 @@ public:
   float baseSpeed = 8.0f;
   float maxSpeed = 150.0f;
   float speedIncrement = 0.8f;
+  
+  // Animation
+  float pedalRotation = 0.0f;
 
   // Lane movement
   float laneWidth = 3.0f;

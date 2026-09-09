@@ -4,18 +4,19 @@
 // === COSTRUTTORI ===
 SoundEngine::SoundEngine()
 {
-    this->volMusic = 1.0f;
-    this->volSound = 1.0f;
+    this->volMenuMusic = 50.0f;
+    this->volGameMusic = 50.0f;
+    this->volSound = 50.0f;
 }
 
-SoundEngine::SoundEngine(const float volMusic, const float volSound)
+SoundEngine::SoundEngine(const float volMenuMusic, const float volSound)
 {
-    this->volMusic = volMusic;
+    this->volMenuMusic = volMenuMusic;
+    this->volGameMusic = volMenuMusic; // Fallback
     this->volSound = volSound;
     this->device = nullptr;
     this->context = nullptr;
 }
-
 
 // === INIZIALIZZAZIONE AUDIO ===
 int SoundEngine::startEngine()
@@ -38,7 +39,6 @@ int SoundEngine::startEngine()
     return 1;
 }
 
-
 // === CHIUSURA AUDIO ===
 void SoundEngine::endEngine() const {
     alcMakeContextCurrent(nullptr);
@@ -47,34 +47,33 @@ void SoundEngine::endEngine() const {
     std::cout << "[OpenAL] Audio chiuso correttamente.\n";
 }
 
-
 // === VOLUME ===
-void SoundEngine::setVolMusica(const float newVolume)
+void SoundEngine::setVolMenuMusic(const float newVolume)
 {
-    volMusic = newVolume;
-
-    alListenerf(AL_GAIN, newVolume);
+    volMenuMusic = newVolume;
 }
 
+void SoundEngine::setVolGameMusic(const float newVolume)
+{
+    volGameMusic = newVolume;
+}
 
 void SoundEngine::setVolSuono(const float newVolume)
 {
     volSound = newVolume;
 }
 
-
-
-void SoundEngine::setVolMaster(const int newVolume)
+void SoundEngine::setVolMaster(const float newVolume)
 {
-    masterVolume = static_cast<float>(newVolume) / 100.0f;
+    masterVolume = newVolume / 100.0f;
     alListenerf(AL_GAIN, masterVolume);
 }
-
 
 // === OPERATORE ASSEGNAMENTO ===
 SoundEngine& SoundEngine::operator=(const SoundEngine &op)
 {
-    this->volMusic = op.volMusic;
+    this->volMenuMusic = op.volMenuMusic;
+    this->volGameMusic = op.volGameMusic;
     this->volSound = op.volSound;
     return *this;
 }

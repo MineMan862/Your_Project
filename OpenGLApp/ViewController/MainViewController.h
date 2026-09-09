@@ -13,7 +13,9 @@
 #include "DataClasses/model.h"
 #include "DataClasses/shader.h"
 #include "GameClasses/GameCommon.h"
+#include "DataClasses/ScoreManager.h"
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -25,7 +27,10 @@ extern int SCR_HEIGHT;
 extern float lastX;
 extern float lastY;
 // Pulsanti
-extern Button startButton;
+extern Button playButton;
+extern Button settingsMenuButton;
+extern Button scoreMenuButton;
+extern Button exitGameButton;
 
 // timing
 extern float deltaTime;
@@ -42,6 +47,7 @@ extern Shader menuBGShader;
 extern string gameName;
 extern SoundEngine soundEngine;
 extern SoundManager menuMusic;
+extern SoundManager sfxMouse;
 
 extern std::map<GLchar, Character> Characters;
 extern unsigned int VAOText, VBOText;
@@ -62,7 +68,10 @@ public:
 
 protected:
   void loadModels();
+  void loadScores();
+  
   bool loaded = false;
+  std::vector<double> topScores;
   Model *roadModel;
   Model *obstacleModel;
 

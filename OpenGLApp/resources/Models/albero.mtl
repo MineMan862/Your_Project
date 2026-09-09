@@ -1,0 +1,24 @@
+# Blender 5.1.2 MTL File: 'albero.blend'
+# www.blender.org
+
+newmtl LeavesMaterial
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 0.000000
+illum 9
+map_Kd texturetronco.jpg
+
+newmtl Material
+Ns 250.000000
+Ka 1.0 1.0 1.0
+Kd 0.2 0.6 0.2
+Ks 0.1 0.1 0.1
+Ke 0.0 0.0 0.0
+Ni 1.500000
+d 1.0
+illum 2
+map_Kd texture_foglie.jpg

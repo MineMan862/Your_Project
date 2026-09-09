@@ -5,19 +5,11 @@
 #include <vector>
 #include <sndfile.h> // per caricare WAV/OGG
 
-SoundManager::SoundManager()
-{
-    this->filename = "";
-    this->volume = 1.0f;
-    this->isMusic = false;
-    this->engine_ptr = nullptr;
-}
-
-SoundManager::SoundManager(std::string filename, float volume, bool isMusic, SoundEngine* engine_ptr)
+SoundManager::SoundManager(std::string filename, float volume, int soundType, SoundEngine* engine_ptr)
 {
     this->filename = std::move(filename);
     this->volume = volume;
-    this->isMusic = isMusic;
+    this->soundType = soundType;
     this->engine_ptr = engine_ptr;
     this->buffer = 0;
     this->source = 0;
@@ -45,21 +37,29 @@ void SoundManager::playSound()
 
     alGenSources(1, &source);
     alSourcei(source, AL_BUFFER, buffer);
+    if (soundType == 1 || soundType == 2) {
+        alSourcei(source, AL_LOOPING, AL_TRUE);
+    }
 
-    float vol = (isMusic ? engine_ptr->volMusic : engine_ptr->volSound) / 100.0f;
+    float vol = 0.0f;
+    if (soundType == 1) vol = engine_ptr->volMenuMusic / 100.0f;
+    else if (soundType == 2) vol = engine_ptr->volGameMusic / 100.0f;
+    else vol = engine_ptr->volSound / 100.0f;
+    
     alSourcef(source, AL_GAIN, vol);
     alSourcePlay(source);
 
     is_playing = true;
 }
 
-void SoundManager::stopSound()
+void SoundManager::stopSound() const
 {
     if (is_playing) {
+        // We cast away const to modify these members since the function was declared const in the header modification
         alSourceStop(source);
-        alDeleteSources(1, &source);
-        alDeleteBuffers(1, &buffer);
-        is_playing = false;
+        alDeleteSources(1, const_cast<ALuint*>(&source));
+        alDeleteBuffers(1, const_cast<ALuint*>(&buffer));
+        const_cast<SoundManager*>(this)->is_playing = false;
     }
 }
 
@@ -71,19 +71,54 @@ bool SoundManager::isPlaying() const
 }
 
 void SoundManager::changeVolume() const {
-    const float newVolume = (isMusic ? engine_ptr->volMusic : engine_ptr->volSound) / 100.0f;
-    alSourcef(source, AL_GAIN, newVolume);
+    if (source != 0) {
+        float newVolume = 0.0f;
+        if (soundType == 1) newVolume = engine_ptr->volMenuMusic / 100.0f;
+        else if (soundType == 2) newVolume = engine_ptr->volGameMusic / 100.0f;
+        else newVolume = engine_ptr->volSound / 100.0f;
+        
+        alSourcef(source, AL_GAIN, newVolume);
+    }
 }
 
-SoundManager& SoundManager::operator=(const SoundManager &op)
+SoundManager::SoundManager(SoundManager&& op) noexcept
 {
     this->engine_ptr = op.engine_ptr;
-    this->filename = op.filename;
+    this->filename = std::move(op.filename);
     this->volume = op.volume;
-    this->isMusic = op.isMusic;
+    this->soundType = op.soundType;
     this->buffer = op.buffer;
     this->source = op.source;
     this->is_playing = op.is_playing;
 
+    op.buffer = 0;
+    op.source = 0;
+    op.is_playing = false;
+}
+
+SoundManager& SoundManager::operator=(SoundManager&& op) noexcept
+{
+    if (this == &op) return *this;
+    
+    stopSound();
+
+    this->engine_ptr = op.engine_ptr;
+    this->filename = std::move(op.filename);
+    this->volume = op.volume;
+    this->soundType = op.soundType;
+    
+    this->buffer = op.buffer;
+    this->source = op.source;
+    this->is_playing = op.is_playing;
+
+    op.buffer = 0;
+    op.source = 0;
+    op.is_playing = false;
+
     return *this;
+}
+
+SoundManager::~SoundManager()
+{
+    stopSound();
 }

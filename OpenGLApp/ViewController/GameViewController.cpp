@@ -1,5 +1,6 @@
 #include "GameViewController.h"
 #include "GameOverViewController.h"
+#include "DataClasses/ScoreManager.h"
 #include <assimp/scene.h>
 #include <cmath>
 #include <cstdlib>
@@ -78,6 +79,50 @@ void GameViewController::setupGeometry() {
                         (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
   glBindVertexArray(0);
+
+  overlayShader = Shader(getResource("Shaders/overlay.vs").c_str(),
+                         getResource("Shaders/overlay.fs").c_str());
+
+  float overlayVertices[] = {
+      0.0f, 1.0f,
+      1.0f, 0.0f,
+      0.0f, 0.0f,
+      0.0f, 1.0f,
+      1.0f, 1.0f,
+      1.0f, 0.0f
+  };
+
+  glGenVertexArrays(1, &overlayVAO);
+  glGenBuffers(1, &overlayVBO);
+  glBindVertexArray(overlayVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, overlayVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(overlayVertices), overlayVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  sliderShader = Shader(getResource("Shaders/slider.vs").c_str(),
+                        getResource("Shaders/slider.fs").c_str());
+
+  float sliderVertices[] = {
+      0.0f, 1.0f, 0.0f, 1.0f,
+      1.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 1.0f,
+      1.0f, 1.0f, 1.0f, 1.0f,
+      1.0f, 0.0f, 1.0f, 0.0f
+  };
+
+  glGenVertexArrays(1, &sliderVAO);
+  glGenBuffers(1, &sliderVBO);
+  glBindVertexArray(sliderVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, sliderVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(sliderVertices), sliderVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
 void GameViewController::loadModels() {
@@ -111,15 +156,22 @@ void GameViewController::loadModels() {
   planeModelLoaded = !planeModel.meshes.empty();
   std::cout << "Plane model: " << (planeModelLoaded ? "LOADED" : "FAILED")
             << " (" << planeModel.meshes.size() << " meshes)" << std::endl;
+
+  std::string alberoPath = getResource("Models/albero.obj");
+  alberoModel.loadModel(alberoPath);
+  alberoModelLoaded = !alberoModel.meshes.empty();
+  std::cout << "Albero model: " << (alberoModelLoaded ? "LOADED" : "FAILED")
+            << " (" << alberoModel.meshes.size() << " meshes)" << std::endl;
 }
 
 void GameViewController::setupLighting(Shader &shader) {
-  shader.setVec3("dirLight.direction", glm::vec3(-1.0f, -1.0f, -1.0f));
-  // Luce ambientale raddoppiata per schiarire le ombre
-  shader.setVec3("dirLight.ambient", glm::vec3(0.9f, 0.9f, 0.9f));
-  shader.setVec3("dirLight.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-  shader.setVec3("dirLight.specular", glm::vec3(0.8f, 0.8f, 0.8f));
-  shader.setFloat("shininess", 25.0f);
+  // Luce che piove dall'alto, da destra e da dietro le spalle del giocatore
+  shader.setVec3("dirLight.direction", glm::vec3(-0.3f, -1.0f, -0.6f));
+  // Luci bilanciate per maggiore contrasto e realismo
+  shader.setVec3("dirLight.ambient", glm::vec3(0.5f, 0.5f, 0.5f));
+  shader.setVec3("dirLight.diffuse", glm::vec3(0.6f, 0.6f, 0.6f));
+  shader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+  shader.setFloat("shininess", 32.0f);
 }
 
 void GameViewController::renderCube(Shader &shader, glm::vec3 position,
@@ -235,6 +287,20 @@ void GameViewController::renderRoad(Shader &shader) {
         mesh.Draw(shader);
       }
     }
+
+    if (alberoModelLoaded) {
+      float treeSpacing = 20.0f;
+      float startTreeZ = floor((bike.posZ + 40.0f) / treeSpacing) * treeSpacing;
+      float endTreeZ = bike.posZ - 300.0f;
+      float treeScale = 1.0f;
+      
+      for (float z = startTreeZ; z > endTreeZ; z -= treeSpacing) {
+        // Left tree
+        renderModel(shader, alberoModel, glm::vec3(-roadHalfWidth - 3.0f, 0.0f, z), glm::vec3(treeScale), 0.0f);
+        // Right tree
+        renderModel(shader, alberoModel, glm::vec3(roadHalfWidth + 3.0f, 0.0f, z), glm::vec3(treeScale), 0.0f);
+      }
+    }
   } else {
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model,
@@ -330,7 +396,7 @@ void GameViewController::renderBike(Shader &shader) {
     modelMat = glm::rotate(modelMat, glm::radians(180.0f),
                            glm::vec3(0.0f, 1.0f, 0.0f));
     shader.setFloat("alpha", 1.0f);
-    float pedalRotation = glfwGetTime() * 300.0f;
+    float pedalRotation = bike.pedalRotation;
 
     for (unsigned int i = 0; i < bikeModel.meshes.size(); i++) {
       auto &mesh = bikeModel.meshes[i];
@@ -476,18 +542,33 @@ void GameViewController::renderHUD(GLFWwindow *window) {
   float barX = 50.0f * scale;
   float barY = static_cast<float>(SCR_HEIGHT) - 50.0f * scale;
 
-  int score = static_cast<int>(-bike.posZ);
+  float dist = -bike.posZ;
+  int score = static_cast<int>(dist);
   std::stringstream ss;
-  ss << score << " m";
-  RenderText(shaderText, "Distanza " + ss.str(), barX, barY + 5.0f * scale,
+  ss << score;
+  RenderText(shaderText, "Distanza " + ss.str() + " m", barX, barY + 5.0f * scale,
              0.5f * scale, glm::vec3(1.0f, 1.0f, 1.0f));
 
   std::stringstream speedSS;
   speedSS << std::fixed << std::setprecision(1) << bike.speed;
   RenderText(shaderText, "Velocita: " + speedSS.str(), barX + 350.0f * scale,
-             barY + 5.0f * scale, 0.4f * scale, glm::vec3(0.9f, 0.9f, 0.6f));
+             barY + 5.0f * scale, 0.4f * scale, glm::vec3(1.0f, 1.0f, 1.0f));
 
-  float keyY = 80.0f * scale;
+  std::string diffStr = "Facile";
+  glm::vec3 diffColor(0.2f, 0.9f, 0.2f); // Verde
+  if (dist >= 1000.0f) {
+      diffStr = "Difficile";
+      diffColor = glm::vec3(0.9f, 0.2f, 0.2f); // Rosso
+  } else if (dist >= 500.0f) {
+      diffStr = "Media";
+      diffColor = glm::vec3(0.9f, 0.9f, 0.2f); // Giallo
+  }
+
+  // Scrivi la difficoltà sotto la distanza (spostato più in basso sull'asse Y)
+  RenderText(shaderText, "Difficolta: " + diffStr, barX,
+             barY - 35.0f * scale, 0.4f * scale, diffColor);
+
+  float keyY = 180.0f * scale;
   float keyScale = 0.5f * scale;
   float centerX = static_cast<float>(SCR_WIDTH) / 2.0f;
 
@@ -495,24 +576,33 @@ void GameViewController::renderHUD(GLFWwindow *window) {
   bool dPressed = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
   bool spacePressed = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
   bool cPressed = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+  bool mPressed = glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS;
 
   glm::vec3 inactiveColor = glm::vec3(0.5f, 0.5f, 0.5f);
   glm::vec3 activeColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
-  RenderText(shaderText, "[A] Sinistra", centerX - 280.0f * scale, keyY,
-             keyScale, aPressed ? activeColor : inactiveColor);
-  RenderText(shaderText, "[D] Destra", centerX + 50.0f * scale, keyY, keyScale,
-             dPressed ? activeColor : inactiveColor);
-  RenderText(shaderText, "[SPACE] Salta", centerX - 130.0f * scale,
-             keyY - 35.0f * scale, keyScale,
-             spacePressed ? activeColor : inactiveColor);
-  RenderText(shaderText, "[C] Camera", centerX - 280.0f * scale,
-             keyY - 70.0f * scale, 0.4f * scale,
-             cPressed ? activeColor : inactiveColor);
+  float leftColX = centerX - 250.0f * scale;
+  float rightColX = centerX + 50.0f * scale;
+  float rowSpacing = 40.0f * scale;
 
+  // Row 1
+  RenderText(shaderText, "[A] Sinistra", leftColX, keyY,
+             keyScale, aPressed ? activeColor : inactiveColor);
+  RenderText(shaderText, "[D] Destra", rightColX, keyY, 
+             keyScale, dPressed ? activeColor : inactiveColor);
+             
+  // Row 2
+  RenderText(shaderText, "[SPACE] Salta", leftColX, keyY - rowSpacing, 
+             keyScale, spacePressed ? activeColor : inactiveColor);
+  RenderText(shaderText, "[M] Pausa", rightColX, keyY - rowSpacing, 
+             keyScale, mPressed ? activeColor : inactiveColor);
+             
+  // Row 3
+  RenderText(shaderText, "[C] Camera", leftColX, keyY - rowSpacing * 2.0f, 
+             keyScale, cPressed ? activeColor : inactiveColor);
   std::string cameraMode = isFirstPerson ? "1a Persona" : "3a Persona";
-  RenderText(shaderText, "Camera: " + cameraMode, centerX + 50.0f * scale,
-             keyY - 70.0f * scale, 0.4f * scale, glm::vec3(0.7f, 0.7f, 0.9f));
+  RenderText(shaderText, "Camera: " + cameraMode, rightColX, keyY - rowSpacing * 2.0f, 
+             keyScale, glm::vec3(0.7f, 0.7f, 0.9f));
 }
 
 void GameViewController::handleInput(GLFWwindow *window) {
@@ -613,6 +703,14 @@ void GameViewController::reset() {
   firstMouseMove = true;
   gameCamera.Yaw = -90.0f;
   gameCamera.Pitch = -15.0f;
+  
+  powerupTimer = 0.0f;
+  currentSpeedMultiplier = 1.0f;
+  isPaused = false;
+  isResuming = false;
+
+  // Riavvia la musica del gioco
+  gameMusic.playSound();
 }
 
 void GameViewController::cleanup() {
@@ -626,6 +724,17 @@ void GameViewController::cleanup() {
     glDeleteBuffers(1, &groundVBO);
     groundVAO = groundVBO = 0;
   }
+  if (overlayVAO) {
+    glDeleteVertexArrays(1, &overlayVAO);
+    glDeleteBuffers(1, &overlayVBO);
+    overlayVAO = overlayVBO = 0;
+  }
+  if (sliderVAO) {
+    glDeleteVertexArrays(1, &sliderVAO);
+    glDeleteBuffers(1, &sliderVBO);
+    sliderVAO = sliderVBO = 0;
+  }
+  gameMusic.stopSound();
 }
 
 GameResult GameViewController::main(GLFWwindow *window) {
@@ -638,9 +747,32 @@ GameResult GameViewController::main(GLFWwindow *window) {
   gameCamera.Pitch = -15.0f;
 
   sfxJump = SoundManager(getResource("SFX/jump.mp3"), soundEngine.volSound,
-                         false, &soundEngine);
+                         0, &soundEngine);
 
+  gameMusic = SoundManager(getResource("Music/Y2Mate.is - VELDA - 8 bit Win A Nice Final Boss Royalty Free Music.mp3"), soundEngine.volGameMusic, 2, &soundEngine);
+  gameMusic.playSound();
+  
+  sfxCrash = SoundManager(getResource("SFX/crash.mp3"), soundEngine.volSound,
+                          0, &soundEngine);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+  float btnWidth = static_cast<float>(SCR_WIDTH) * 0.25f;
+  float btnHeight = static_cast<float>(SCR_HEIGHT) * 0.08f;
+  float centerX = static_cast<float>(SCR_WIDTH) / 2.0f;
+  float centerY = static_cast<float>(SCR_HEIGHT) / 2.0f;
+  float spacing = btnHeight * 1.5f;
+
+  continueButton = Button(centerX - btnWidth / 2.0f, centerY + spacing, btnWidth, btnHeight);
+  settingsButton = Button(centerX - btnWidth / 2.0f, centerY, btnWidth, btnHeight);
+  exitButton = Button(centerX - btnWidth / 2.0f, centerY - spacing, btnWidth, btnHeight);
+
+  float sliderWidth = btnWidth * 1.5f;
+  float sliderHeight = btnHeight * 0.4f;
+  musicSlider = Button(centerX - sliderWidth / 2.0f, centerY + spacing, sliderWidth, sliderHeight);
+  soundSlider = Button(centerX - sliderWidth / 2.0f, centerY, sliderWidth, sliderHeight);
+  backButton = Button(centerX - btnWidth / 2.0f, centerY - spacing * 1.5f, btnWidth, btnHeight);
+
+  bool shouldQuit = false;
 
   while (!glfwWindowShouldClose(window)) {
     const auto currentFrame = static_cast<float>(glfwGetTime());
@@ -649,50 +781,80 @@ GameResult GameViewController::main(GLFWwindow *window) {
     if (deltaTime > 0.05f)
       deltaTime = 0.05f;
 
-    handleInput(window);
-    if (powerupTimer > 0.0f) {
-      powerupTimer -= deltaTime;
-      if (powerupTimer <= 0.0f) {
-        currentSpeedMultiplier = 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
+      if (!mKeyWasPressed) {
+        if (!isResuming) {
+          isPaused = !isPaused;
+          if (isPaused) {
+            wasFirstPersonBeforePause = isFirstPerson;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+          } else {
+            if (wasFirstPersonBeforePause) {
+              glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+              firstMouseMove = true;
+            }
+          }
+        }
+        mKeyWasPressed = true;
       }
-    }
-    int collected = level.checkPowerUp(bike);
-    if (collected == 0) {
-      currentSpeedMultiplier = 0.6f;
-      powerupTimer = 7.0f;
-    } else if (collected == 1) {
-      currentSpeedMultiplier = 1.5f;
-      powerupTimer = 8.0f;
-    }
-    float gameDeltaTime = deltaTime * currentSpeedMultiplier;
-    bike.update(gameDeltaTime);
-    level.update(bike.posZ);
-
-    if (level.checkCollisions(bike)) {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      GameOverViewController gameOver;
-      GameResult result = gameOver.main(window, -bike.posZ);
-      if (result == RESULT_RESTART) {
-        reset();
-        continue;
-      }
-      cleanup();
-      return RESULT_QUIT;
+    } else {
+      mKeyWasPressed = false;
     }
 
-    /*if (level.isCompleted(bike.posZ)) {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      VictoryViewController victory;
-      GameResult result = victory.main(window);
-      if (result == RESULT_RESTART) {
-        reset();
-        continue;
+    if (!isPaused) {
+      handleInput(window);
+      if (powerupTimer > 0.0f) {
+        powerupTimer -= deltaTime;
+        if (powerupTimer <= 0.0f) {
+          currentSpeedMultiplier = 1.0f;
+        }
       }
-      cleanup();
-      return RESULT_QUIT;
-    }*/
+      int collected = level.checkPowerUp(bike);
+      if (collected == 0) {
+        currentSpeedMultiplier = 0.6f;
+        powerupTimer = 7.0f;
+      } else if (collected == 1) {
+        currentSpeedMultiplier = 1.5f;
+        powerupTimer = 8.0f;
+      }
+      float gameDeltaTime = deltaTime * currentSpeedMultiplier;
+      bike.update(gameDeltaTime);
+      level.update(bike.posZ);
 
-    updateCamera();
+      if (level.checkCollisions(bike)) {
+        gameMusic.stopSound();
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        ScoreManager::AddScore(static_cast<double>(-bike.posZ));
+        GameOverViewController gameOver;
+        GameResult result = gameOver.main(window, -bike.posZ);
+        if (result == RESULT_RESTART) {
+          reset();
+          continue;
+        }
+        cleanup();
+        return RESULT_QUIT;
+      }
+
+      updateCamera();
+    } else {
+      if (isResuming) {
+        resumeTimer -= deltaTime;
+        if (resumeTimer <= 0.0f) {
+          isResuming = false;
+          isPaused = false;
+          if (wasFirstPersonBeforePause) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            firstMouseMove = true;
+          }
+        }
+      } else {
+        handlePauseInput(window, shouldQuit);
+        if (shouldQuit) {
+          cleanup();
+          return RESULT_QUIT;
+        }
+      }
+    }
 
     glClearColor(0.45f, 0.7f, 0.95f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -719,10 +881,201 @@ GameResult GameViewController::main(GLFWwindow *window) {
     glEnable(GL_BLEND);
     renderHUD(window);
 
+    if (isPaused) {
+      renderPauseMenu(window);
+    }
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
   cleanup();
   return RESULT_QUIT;
+}
+
+void GameViewController::handlePauseInput(GLFWwindow *window, bool &shouldQuit) {
+  double mouseX, mouseY;
+  glfwGetCursorPos(window, &mouseX, &mouseY);
+  int width, height;
+  glfwGetWindowSize(window, &width, &height);
+  const auto w_conv = static_cast<float>(SCR_WIDTH);
+  const auto h_conv = static_cast<float>(SCR_HEIGHT);
+  float xpos = (w_conv * static_cast<float>(mouseX) / static_cast<float>(width));
+  float rawYPos = (h_conv * static_cast<float>(mouseY) / static_cast<float>(height));
+  float ypos = h_conv - rawYPos;
+
+  static bool ignoreMouseUntilRelease = false;
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+    ignoreMouseUntilRelease = false;
+  }
+
+  auto checkButton = [&](Button &btn) {
+    if (xpos > btn.x && xpos < btn.x + btn.width &&
+        ypos > btn.y && ypos < btn.y + btn.height) {
+      btn.selected = true;
+      if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (!btn.clicked && !ignoreMouseUntilRelease) {
+          btn.clicked = true;
+          return true;
+        }
+      } else {
+        btn.clicked = false;
+      }
+    } else {
+      btn.selected = false;
+      btn.clicked = false;
+    }
+    return false;
+  };
+
+  if (!isSettingsMenu) {
+    if (checkButton(continueButton)) {
+      isResuming = true;
+      resumeTimer = 1.5f;
+    }
+
+    if (checkButton(settingsButton)) {
+      isSettingsMenu = true;
+      ignoreMouseUntilRelease = true;
+    }
+
+    if (checkButton(exitButton)) {
+      shouldQuit = true;
+    }
+  } else {
+    // Settings Menu Input
+    if (checkButton(backButton)) {
+      isSettingsMenu = false;
+      ignoreMouseUntilRelease = true;
+    }
+
+    auto handleSlider = [&](Button &slider, float &volParam, auto setterFunc) {
+      if (xpos >= slider.x && xpos <= slider.x + slider.width &&
+          ypos >= slider.y - 10.0f && ypos <= slider.y + slider.height + 10.0f) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !ignoreMouseUntilRelease) {
+          float relX = xpos - slider.x;
+          volParam = (relX / slider.width) * 100.0f;
+          if (volParam < 0.0f) volParam = 0.0f;
+          if (volParam > 100.0f) volParam = 100.0f;
+          setterFunc(volParam);
+        }
+      }
+    };
+
+    handleSlider(musicSlider, soundEngine.volGameMusic, [&](float v) {
+      soundEngine.setVolGameMusic(v);
+      gameMusic.changeVolume();
+    });
+
+    handleSlider(soundSlider, soundEngine.volSound, [&](float v) {
+      soundEngine.setVolSuono(v);
+      sfxJump.changeVolume();
+      sfxCrash.changeVolume();
+    });
+  }
+}
+
+void GameViewController::renderPauseMenu(GLFWwindow *window) {
+  // Draw semi-transparent background
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_DEPTH_TEST);
+
+  overlayShader.use();
+  glm::mat4 projOverlay = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f);
+  overlayShader.setMat4("projection", projOverlay);
+  overlayShader.setVec4("overlayColor", glm::vec4(0.25f, 0.25f, 0.25f, 0.85f));
+
+  glBindVertexArray(overlayVAO);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBindVertexArray(0);
+
+  shaderText.use();
+  glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(SCR_WIDTH), 0.0f,
+                                    static_cast<float>(SCR_HEIGHT));
+  shaderText.setMat4("projection", projection);
+
+  float scale = static_cast<float>(SCR_HEIGHT) / 1080.0f;
+  
+  auto getTextWidth = [&](const std::string &text, float textScale) {
+    float width = 0.0f;
+    for (char c : text) {
+      width += (Characters[c].Advance >> 6) * textScale;
+    }
+    return width;
+  };
+
+  auto getTextWidthLarge = [&](const std::string &text, float textScale) {
+    float width = 0.0f;
+    for (char c : text) {
+      width += (CharactersLarge[c].Advance >> 6) * (textScale / 3.0f);
+    }
+    return width;
+  };
+
+  float centerX = static_cast<float>(SCR_WIDTH) / 2.0f;
+
+  if (isResuming) {
+    std::string countStr;
+    if (resumeTimer > 1.0f) countStr = "3";
+    else if (resumeTimer > 0.5f) countStr = "2";
+    else countStr = "1";
+
+    float textScale = 6.0f * scale;
+    float tWidth = getTextWidthLarge(countStr, textScale);
+    RenderTextLarge(shaderText, countStr, centerX - tWidth / 2.0f, 
+               static_cast<float>(SCR_HEIGHT) / 2.0f - textScale * 10.0f, textScale, 
+               glm::vec3(1.0f, 0.9f, 0.2f));
+    return;
+  }
+
+  float titleScale = 2.0f * scale;
+  float titleWidth = getTextWidth("PAUSA", titleScale);
+  RenderText(shaderText, "PAUSA", centerX - titleWidth / 2.0f, 
+             static_cast<float>(SCR_HEIGHT) * 0.8f, titleScale, 
+             glm::vec3(0.9f, 0.8f, 0.2f));
+
+  auto drawBtnText = [&](Button &btn, const std::string &text) {
+     glm::vec3 color = btn.selected ? glm::vec3(1.0f, 1.0f, 0.2f) : glm::vec3(1.0f, 1.0f, 1.0f);
+     
+     float textScale = 0.8f * scale;
+     float tWidth = getTextWidth(text, textScale);
+     float textXOffset = (btn.width - tWidth) / 2.0f;
+     
+     RenderText(shaderText, text, btn.x + textXOffset, btn.y + btn.height * 0.25f, textScale, color);
+     
+     if (btn.selected) {
+         float indicatorWidth = getTextWidth("> ", textScale);
+         RenderText(shaderText, ">", btn.x + textXOffset - indicatorWidth, btn.y + btn.height * 0.25f, textScale, color);
+     }
+  };
+
+  if (!isSettingsMenu) {
+    drawBtnText(continueButton, "Continua");
+    drawBtnText(settingsButton, "Impostazioni");
+    drawBtnText(exitButton, "Torna al menu");
+  } else {
+    auto drawSlider = [&](Button &slider, float volParam, const std::string &label) {
+        float textScale = 0.6f * scale;
+        RenderText(shaderText, label, slider.x, slider.y + slider.height + 10.0f * scale, textScale, glm::vec3(1.0f));
+
+        sliderShader.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(slider.x, slider.y, 0.0f));
+        model = glm::scale(model, glm::vec3(slider.width, slider.height, 1.0f));
+        
+        sliderShader.setMat4("model", model);
+        sliderShader.setMat4("projection", projection);
+        sliderShader.setVec3("spriteColor", glm::vec3(0.2f, 0.8f, 0.2f));
+        sliderShader.setFloat("fillPercentage", volParam / 100.0f);
+
+        glBindVertexArray(sliderVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    };
+
+    drawSlider(musicSlider, soundEngine.volGameMusic, "Volume Musica");
+    drawSlider(soundSlider, soundEngine.volSound, "Volume Effetti");
+    drawBtnText(backButton, "Indietro");
+  }
 }
